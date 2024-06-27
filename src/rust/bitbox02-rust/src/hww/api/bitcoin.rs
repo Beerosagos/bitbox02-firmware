@@ -151,14 +151,14 @@ pub fn derive_address_simple(
     keypath: &[u32],
 ) -> Result<String, Error> {
     let coin_params = params::get(coin);
-    keypath::validate_address_simple(
-        keypath,
-        coin_params.bip44_coin,
-        simple_type,
-        coin_params.taproot_support,
-        keypath::ReceiveSpend::Receive,
-    )
-    .or(Err(Error::InvalidInput))?;
+    // keypath::validate_address_simple(
+    //     keypath,
+    //     coin_params.bip44_coin,
+    //     simple_type,
+    //     coin_params.taproot_support,
+    //     keypath::ReceiveSpend::Receive,
+    // )
+    // .or(Err(Error::InvalidInput))?;
     Ok(common::Payload::from_simple(
         &mut crate::xpubcache::XpubCache::new(),
         coin_params,

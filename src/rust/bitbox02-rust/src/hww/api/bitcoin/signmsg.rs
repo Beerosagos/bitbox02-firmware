@@ -36,9 +36,9 @@ const MAX_MESSAGE_SIZE: usize = 1024;
 /// compact format (R and S values), and the last byte is the recoverable id (recid).
 pub async fn process(request: &pb::BtcSignMessageRequest) -> Result<Response, Error> {
     let coin = BtcCoin::try_from(request.coin)?;
-    if coin != BtcCoin::Btc {
-        return Err(Error::InvalidInput);
-    }
+    // if coin != BtcCoin::Btc && coin != BtcCoin::Tbtc{
+    //     return Err(Error::InvalidInput);
+    // }
     let (keypath, simple_type) = match &request.script_config {
         Some(pb::BtcScriptConfigWithKeypath {
             script_config:
