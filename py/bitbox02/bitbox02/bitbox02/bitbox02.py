@@ -38,6 +38,7 @@ try:
     from bitbox02.communication.generated import btc_pb2 as btc
     from bitbox02.communication.generated import cardano_pb2 as cardano
     from bitbox02.communication.generated import mnemonic_pb2 as mnemonic
+    from bitbox02.communication.generated import shamir_pb2 as shamir
     from bitbox02.communication.generated import bitbox02_system_pb2 as bitbox02_system
     from bitbox02.communication.generated import backup_commands_pb2 as backup
     from bitbox02.communication.generated import common_pb2 as common
@@ -257,6 +258,17 @@ class BitBox02(BitBoxCommonAPI):
         # pylint: disable=no-member
         request = hww.Request()
         request.show_mnemonic.CopyFrom(mnemonic.ShowMnemonicRequest())
+        self._msg_query(request, expected_response="success")
+
+    def show_shamir(self) -> None:
+        """
+        Returns True if shamir mnemonics were successfully shown and confirmed.
+        Raises a Bitbox02Exception on failure.
+        """
+        # self._require_atleast(semver.VersionInfo(9, 16, 0)) TODO
+        # pylint: disable=no-member
+        request = hww.Request()
+        request.show_shamir.CopyFrom(shamir.ShowShamirRequest())
         self._msg_query(request, expected_response="success")
 
     def _btc_msg_query(
@@ -1131,6 +1143,19 @@ class BitBox02(BitBoxCommonAPI):
         # pylint: disable=no-member
         request.restore_from_mnemonic.CopyFrom(
             mnemonic.RestoreFromMnemonicRequest(
+                timestamp=int(time.time()), timezone_offset=time.localtime().tm_gmtoff
+            )
+        )
+        self._msg_query(request)
+
+    def restore_from_shamir(self) -> None:
+        """
+        Restore from shamir backup. Raises a Bitbox02Exception on failure.
+        """
+        request = hww.Request()
+        # pylint: disable=no-member
+        request.restore_from_shamir.CopyFrom(
+            shamir.RestoreFromShamirRequest(
                 timestamp=int(time.time()), timezone_offset=time.localtime().tm_gmtoff
             )
         )

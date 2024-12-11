@@ -291,6 +291,13 @@ class SendMessage:
         except UserAbortException:
             print("Aborted by user")
 
+    def _restore_from_shamir(self) -> None:
+        try:
+            self._device.restore_from_shamir()
+            print("Restore successful")
+        except UserAbortException:
+            print("Aborted by user")
+
     def _list_device_info(self) -> None:
         print(f"All info: {self._device.device_info()}")
 
@@ -898,6 +905,13 @@ class SendMessage:
             print("Success")
         except UserAbortException:
             print("Aborted by user")
+    def _show_shamir_seed(self) -> None:
+        print("Your BitBox02 will now show the Shamir seed mnemonics")
+        try:
+            self._device.show_shamir()
+            print("Success")
+        except UserAbortException:
+            print("Aborted by user")
 
     def _create_backup(self) -> None:
         if self._device.check_backup(silent=True) is not None:
@@ -1390,6 +1404,7 @@ class SendMessage:
             ("Set up a new wallet", self._setup_workflow),
             ("Restore from backup", self._restore_backup_workflow),
             ("Restore from mnemonic", self._restore_from_mnemonic),
+            ("Restore from shamir", self._restore_from_shamir),
             ("List device info", self._list_device_info),
             ("Reboot into bootloader", self._reboot),
             ("Check if SD card inserted", self._check_sd_presence),
@@ -1417,6 +1432,7 @@ class SendMessage:
             ("List backups", self._print_backups),
             ("Check backup", self._check_backup),
             ("Show mnemonic", self._show_mnemnoic_seed),
+            ("Show shamir", self._show_shamir_seed),
             ("Create backup", self._create_backup),
             ("Reboot into bootloader", self._reboot),
             ("Check if SD card inserted", self._check_sd_presence),
