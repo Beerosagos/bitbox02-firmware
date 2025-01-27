@@ -387,7 +387,7 @@
 // <i> Indicates whether generic clock 5 configuration is enabled or not
 // <id> enable_gclk_gen_5
 #ifndef CONF_GCLK_GENERATOR_5_CONFIG
-#define CONF_GCLK_GENERATOR_5_CONFIG 0
+#define CONF_GCLK_GENERATOR_5_CONFIG 1
 #endif
 
 // <h> Generic Clock Generator Control
@@ -404,7 +404,7 @@
 // <i> This defines the clock source for generic clock generator 5
 // <id> gclk_gen_5_oscillator
 #ifndef CONF_GCLK_GEN_5_SOURCE
-#define CONF_GCLK_GEN_5_SOURCE GCLK_GENCTRL_SRC_GCLKGEN1
+#define CONF_GCLK_GEN_5_SOURCE GCLK_GENCTRL_SRC_DPLL0
 #endif
 
 // <q> Run in Standby
@@ -446,7 +446,7 @@
 // <i> Indicates whether Generic Clock Generator Enable is enabled or not
 // <id> gclk_arch_gen_5_enable
 #ifndef CONF_GCLK_GEN_5_GENEN
-#define CONF_GCLK_GEN_5_GENEN 0
+#define CONF_GCLK_GEN_5_GENEN 1
 #endif
 // </h>
 
@@ -454,7 +454,7 @@
 //<o> Generic clock generator 5 division <0x0000-0xFFFF>
 // <id> gclk_gen_5_div
 #ifndef CONF_GCLK_GEN_5_DIV
-#define CONF_GCLK_GEN_5_DIV 62
+#define CONF_GCLK_GEN_5_DIV 1
 #endif
 // </h>
 // </e>
@@ -463,7 +463,7 @@
 // <i> Indicates whether generic clock 6 configuration is enabled or not
 // <id> enable_gclk_gen_6
 #ifndef CONF_GCLK_GENERATOR_6_CONFIG
-#define CONF_GCLK_GENERATOR_6_CONFIG 0
+#define CONF_GCLK_GENERATOR_6_CONFIG 1
 #endif
 
 // <h> Generic Clock Generator Control
@@ -480,7 +480,7 @@
 // <i> This defines the clock source for generic clock generator 6
 // <id> gclk_gen_6_oscillator
 #ifndef CONF_GCLK_GEN_6_SOURCE
-#define CONF_GCLK_GEN_6_SOURCE GCLK_GENCTRL_SRC_XOSC1
+#define CONF_GCLK_GEN_6_SOURCE GCLK_GENCTRL_SRC_DPLL0
 #endif
 
 // <q> Run in Standby
@@ -522,7 +522,7 @@
 // <i> Indicates whether Generic Clock Generator Enable is enabled or not
 // <id> gclk_arch_gen_6_enable
 #ifndef CONF_GCLK_GEN_6_GENEN
-#define CONF_GCLK_GEN_6_GENEN 0
+#define CONF_GCLK_GEN_6_GENEN 1
 #endif
 // </h>
 
@@ -530,7 +530,7 @@
 //<o> Generic clock generator 6 division <0x0000-0xFFFF>
 // <id> gclk_gen_6_div
 #ifndef CONF_GCLK_GEN_6_DIV
-#define CONF_GCLK_GEN_6_DIV 400
+#define CONF_GCLK_GEN_6_DIV 9
 #endif
 // </h>
 // </e>
