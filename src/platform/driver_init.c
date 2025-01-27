@@ -15,6 +15,11 @@
 // THIS IS A GENERATED FILE, MODIFY AS LITTLE AS POSSIBLE
 
 #include "driver_init.h"
+#include "bitbox02_pins.h"
+#include "util.h"
+#include <compiler.h>
+#include <hal_sleep.h>
+#include <stdint.h>
 #include <utils.h>
 
 #define PIN_HIGH 1
@@ -113,6 +118,71 @@ static void _spi_init(void)
     SPI_0_init();
     _spi_set_pins();
     SPI_0_enable();
+}
+
+static void _spi_1_CLOCK_init(void)
+{
+    hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM4_GCLK_ID_CORE, CONF_GCLK_SERCOM4_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+    hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM4_GCLK_ID_SLOW, CONF_GCLK_SERCOM4_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+
+    hri_mclk_set_APBDMASK_SERCOM4_bit(MCLK);
+}
+
+static void _spi_1_PORT_init(void)
+{
+    // CS (TODO check)
+    gpio_set_pin_level(PIN_SPI1_CS, PIN_LOW);
+    gpio_set_pin_direction(PIN_SPI1_CS, GPIO_DIRECTION_OUT);
+    gpio_set_pin_function(PIN_SPI1_CS, GPIO_PIN_FUNCTION_OFF);
+
+    // MISO
+    gpio_set_pin_direction(PIN_SPI1_MISO, GPIO_DIRECTION_IN);
+    gpio_set_pin_pull_mode(PIN_SPI1_MISO, GPIO_PULL_OFF);
+    gpio_set_pin_function(PIN_SPI1_MISO, PINMUX_PA13D_SERCOM4_PAD0);
+
+    // CLK
+    gpio_set_pin_level(PIN_SPI1_CLK, PIN_LOW);
+    gpio_set_pin_direction(PIN_SPI1_CLK, GPIO_DIRECTION_OUT);
+    gpio_set_pin_function(PIN_SPI1_CLK, PINMUX_PA12D_SERCOM4_PAD1);
+
+    // MOSI
+    gpio_set_pin_level(PIN_SPI1_MOSI, PIN_LOW);
+    gpio_set_pin_direction(PIN_SPI1_MOSI, GPIO_DIRECTION_OUT);
+    gpio_set_pin_function(PIN_SPI1_MOSI, PINMUX_PA15D_SERCOM4_PAD3);
+}
+
+void _spi_1_test(void)
+{
+    for (;;) {
+        // Test code - Read the MX25 ID and if everything goes well
+        // hold on an infinite loop.
+        gpio_set_pin_level(PIN_SPI1_CS, 0);
+        uint8_t cmd = 0x9f; // RDID
+        SPI_1_write_block((void*)&cmd, sizeof(cmd));
+
+        size_t size = 3;
+        uint8_t output[size];
+        SPI_1_read_block(output, size);
+        gpio_set_pin_level(PIN_SPI1_CS, 1);
+
+        util_log("MX25 Memory RDID result: 0x%s\n", util_dbg_hex(output, size));
+        if (output[0] == 0xC2) {
+            // correct output
+            util_log("CORRECT!!\n");
+        }
+    }
+}
+
+/**
+ * Initialize SPI 1 peripheral
+ */
+static void _spi_1_init(void)
+{
+    _spi_1_CLOCK_init();
+    SPI_1_init();
+    _spi_1_PORT_init();
+    // SPI_1_enablee(); // TODO check, not called in the atmel example.
+    // gpio_set_pin_level(PIN_SPI1_CS, 1);
 }
 
 /**
@@ -286,6 +356,8 @@ void system_init(void)
 
     // OLED
     _spi_init();
+    // MX25 memory
+    _spi_1_init();
     // ATECC608A
     _i2c_init();
     // uSD
@@ -315,6 +387,9 @@ void bootloader_init(void)
 
     // OLED
     _spi_init();
+
+    // MX25 memory
+    // _spi_1_init();
 
     // Hardware crypto
     _ecdsa_init();
