@@ -122,10 +122,12 @@ static void _spi_init(void)
 
 static void _spi_1_CLOCK_init(void)
 {
-    hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM4_GCLK_ID_CORE, CONF_GCLK_SERCOM4_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
-    hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM4_GCLK_ID_SLOW, CONF_GCLK_SERCOM4_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+    hri_gclk_write_PCHCTRL_reg(
+        GCLK, SERCOM2_GCLK_ID_CORE, CONF_GCLK_SERCOM2_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+    hri_gclk_write_PCHCTRL_reg(
+        GCLK, SERCOM2_GCLK_ID_SLOW, CONF_GCLK_SERCOM2_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
 
-    hri_mclk_set_APBDMASK_SERCOM4_bit(MCLK);
+    hri_mclk_set_APBBMASK_SERCOM2_bit(MCLK);
 }
 
 static void _spi_1_PORT_init(void)
@@ -138,17 +140,17 @@ static void _spi_1_PORT_init(void)
     // MISO
     gpio_set_pin_direction(PIN_SPI1_MISO, GPIO_DIRECTION_IN);
     gpio_set_pin_pull_mode(PIN_SPI1_MISO, GPIO_PULL_OFF);
-    gpio_set_pin_function(PIN_SPI1_MISO, PINMUX_PA13D_SERCOM4_PAD0);
+    gpio_set_pin_function(PIN_SPI1_MISO, PINMUX_PA14C_SERCOM2_PAD2);
 
     // CLK
     gpio_set_pin_level(PIN_SPI1_CLK, PIN_LOW);
     gpio_set_pin_direction(PIN_SPI1_CLK, GPIO_DIRECTION_OUT);
-    gpio_set_pin_function(PIN_SPI1_CLK, PINMUX_PA12D_SERCOM4_PAD1);
+    gpio_set_pin_function(PIN_SPI1_CLK, PINMUX_PA13C_SERCOM2_PAD1);
 
     // MOSI
     gpio_set_pin_level(PIN_SPI1_MOSI, PIN_LOW);
     gpio_set_pin_direction(PIN_SPI1_MOSI, GPIO_DIRECTION_OUT);
-    gpio_set_pin_function(PIN_SPI1_MOSI, PINMUX_PA15D_SERCOM4_PAD3);
+    gpio_set_pin_function(PIN_SPI1_MOSI, PINMUX_PA15C_SERCOM2_PAD3);
 }
 
 void _spi_1_test(void)
