@@ -74,4 +74,5 @@ void bootloader_close_interfaces(void);
  */
 void bootloader_init(void);
 
+void _spi_mem_test(void);
 #endif

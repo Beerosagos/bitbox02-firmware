@@ -32,6 +32,7 @@ int main(void)
     init_mcu();
     system_init();
     platform_init();
+    _spi_mem_test();
     __stack_chk_guard = common_stack_chk_guard();
     screen_init();
     screen_splash();

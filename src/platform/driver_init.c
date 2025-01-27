@@ -15,6 +15,11 @@
 // THIS IS A GENERATED FILE, MODIFY AS LITTLE AS POSSIBLE
 
 #include "driver_init.h"
+#include "bitbox02_pins.h"
+#include "util.h"
+#include <compiler.h>
+#include <hal_sleep.h>
+#include <stdint.h>
 #include <utils.h>
 
 #define PIN_HIGH 1
@@ -113,6 +118,279 @@ static void _spi_init(void)
     SPI_OLED_init();
     _spi_set_pins();
     SPI_OLED_enable();
+}
+
+static void _spi_mem_CLOCK_init(void)
+{
+    hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM4_GCLK_ID_CORE, CONF_GCLK_SERCOM4_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+    hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM4_GCLK_ID_SLOW, CONF_GCLK_SERCOM4_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+
+    hri_mclk_set_APBDMASK_SERCOM4_bit(MCLK);
+}
+
+static void _spi_mem_PORT_init(void)
+{
+    // CS
+    gpio_set_pin_level(PIN_MEM_CS, PIN_LOW);
+    gpio_set_pin_direction(PIN_MEM_CS, GPIO_DIRECTION_OUT);
+    gpio_set_pin_function(PIN_MEM_CS, GPIO_PIN_FUNCTION_OFF);
+
+    // MISO
+    gpio_set_pin_direction(PIN_MEM_MISO, GPIO_DIRECTION_IN);
+    gpio_set_pin_pull_mode(PIN_MEM_MISO, GPIO_PULL_OFF);
+    gpio_set_pin_function(PIN_MEM_MISO, PINMUX_PA13D_SERCOM4_PAD0);
+
+    // CLK
+    gpio_set_pin_level(PIN_MEM_CLK, PIN_LOW);
+    gpio_set_pin_direction(PIN_MEM_CLK, GPIO_DIRECTION_OUT);
+    gpio_set_pin_function(PIN_MEM_CLK, PINMUX_PA12D_SERCOM4_PAD1);
+
+    // MOSI
+    gpio_set_pin_level(PIN_MEM_MOSI, PIN_LOW);
+    gpio_set_pin_direction(PIN_MEM_MOSI, GPIO_DIRECTION_OUT);
+    gpio_set_pin_function(PIN_MEM_MOSI, PINMUX_PA15D_SERCOM4_PAD3);
+
+    //HOLD
+    gpio_set_pin_level(PIN_MEM_HOLD, PIN_HIGH);
+    gpio_set_pin_direction(PIN_MEM_HOLD, GPIO_DIRECTION_OUT);
+
+    //WP
+    gpio_set_pin_level(PIN_MEM_WP, PIN_HIGH);
+    gpio_set_pin_direction(PIN_MEM_WP, GPIO_DIRECTION_OUT);
+}
+
+void _spi_mem_test(void)
+{
+    // Read the MX25 ID
+    uint8_t cmd = 0x9f; // RDID
+    size_t cmd_size = 1;
+    size_t response_size = 3;
+    size_t size = cmd_size + response_size;
+    
+    uint8_t output[size];
+    output[0] = cmd;
+
+    gpio_set_pin_level(PIN_MEM_CS, 0);
+    SPI_MEM_exchange_block((void*)&output, size);
+    gpio_set_pin_level(PIN_MEM_CS, 1);
+    uint8_t *response = &output[1];
+    util_log("MX25 Memory RDID result: 0x%s", util_dbg_hex(response, response_size));
+
+    if (response[0] == 0xC2 && response[1] == 0x28 && response[2] == 0x15) {
+        // correct output
+        util_log("CORRECT!!");
+    }
+
+    // Write and read some data
+    uint32_t address = 0x000100;  // Target address (must be sector-aligned for erase)
+    uint8_t data_to_write[4] = { 0xde, 0xad, 0xbe, 0xef };
+    uint8_t buffer[4 + 4];  // For combined command + data
+    uint8_t read_back[4] = {0};
+
+    // --- Enable Write ---
+    buffer[0] = 0x06;  // WREN
+    gpio_set_pin_level(PIN_MEM_CS, 0);
+    SPI_MEM_exchange_block(buffer, 1);
+    gpio_set_pin_level(PIN_MEM_CS, 1);
+
+    // --- Erase Sector ---
+    buffer[0] = 0x20;  // SE (Sector Erase)
+    buffer[1] = (address >> 16) & 0xFF;
+    buffer[2] = (address >> 8) & 0xFF;
+    buffer[3] = address & 0xFF;
+
+    gpio_set_pin_level(PIN_MEM_CS, 0);
+    SPI_MEM_exchange_block(buffer, 4);
+    gpio_set_pin_level(PIN_MEM_CS, 1);
+
+    // --- Wait for erase to finish (poll WIP) ---
+    do {
+        buffer[0] = 0x05; buffer[1] = 0;
+        gpio_set_pin_level(PIN_MEM_CS, 0);
+        SPI_MEM_exchange_block(buffer, 2);
+        gpio_set_pin_level(PIN_MEM_CS, 1);
+    } while (buffer[1] & 0x01);
+
+    util_log("Sector erased at 0x%06lX", address);
+
+    // --- Enable Write again ---
+    buffer[0] = 0x06;  // WREN
+    gpio_set_pin_level(PIN_MEM_CS, 0);
+    SPI_MEM_exchange_block(buffer, 1);
+    gpio_set_pin_level(PIN_MEM_CS, 1);
+
+    // --- Page Program (write 4 bytes) ---
+    buffer[0] = 0x02;  // PP (Page Program)
+    buffer[1] = (address >> 16) & 0xFF;
+    buffer[2] = (address >> 8) & 0xFF;
+    buffer[3] = address & 0xFF;
+    memcpy(&buffer[4], data_to_write, 4);
+
+    gpio_set_pin_level(PIN_MEM_CS, 0);
+    SPI_MEM_exchange_block(buffer, 4 + 4);
+    gpio_set_pin_level(PIN_MEM_CS, 1);
+
+    // --- Wait for write to finish ---
+    do {
+        buffer[0] = 0x05; buffer[1] = 0;
+        gpio_set_pin_level(PIN_MEM_CS, 0);
+        SPI_MEM_exchange_block(buffer, 2);
+        gpio_set_pin_level(PIN_MEM_CS, 1);
+    } while (buffer[1] & 0x01);
+
+    util_log("Wrote 4 bytes at 0x%06lX", address);
+
+    // --- Read back the data ---
+    buffer[0] = 0x03;  // READ
+    buffer[1] = (address >> 16) & 0xFF;
+    buffer[2] = (address >> 8) & 0xFF;
+    buffer[3] = address & 0xFF;
+    memset(&buffer[4], 0x00, 4);
+
+    gpio_set_pin_level(PIN_MEM_CS, 0);
+    SPI_MEM_exchange_block(buffer, 4 + 4);
+    gpio_set_pin_level(PIN_MEM_CS, 1);
+
+    memcpy(read_back, &buffer[4], 4);
+    util_log("Read back: 0x%s", util_dbg_hex(read_back, 4));
+
+    // Test the HOLD pin
+    util_log("Starting HOLD# pin test...");
+    for(int i = 0; i < 10; i++) {
+        //Test the HOLD pin
+        uint8_t buf[6] = { 0x9F, 0x00, 0x00, 0x00};
+
+        gpio_set_pin_level(PIN_MEM_CS, 0);
+        if (i % 2 == 0)  {
+            gpio_set_pin_level(PIN_MEM_HOLD, 0);  // Pull HOLD# LOW
+            util_log("HOLDING");
+        }
+
+        // Start sending RDID command
+        SPI_MEM_exchange_block(buf, 4);  // Send 0x9F
+
+        if (i % 2 == 0) 
+            gpio_set_pin_level(PIN_MEM_HOLD, 1);  // Release HOLD#
+
+        gpio_set_pin_level(PIN_MEM_CS, 1);
+
+        util_log("HOLD# test result: 0x%s", util_dbg_hex(&buf[1], 3));
+        delay_ms(100);
+    }
+
+    // test WP
+    uint8_t tx[4];
+    uint8_t sr = 0;
+    uint8_t cr1 = 0, cr2 = 0;
+
+    util_log("Starting WP# test...");
+
+    // --- Read current config register (0x15) ---
+    tx[0] = 0x15;
+    tx[1] = 0x00;
+    tx[2] = 0x00;
+    gpio_set_pin_level(PIN_MEM_CS, 0);
+    SPI_MEM_exchange_block(tx, 3);  // Overwrites tx[1] and tx[2] with CR1 and CR2
+    gpio_set_pin_level(PIN_MEM_CS, 1);
+    cr1 = tx[1];
+    cr2 = tx[2];
+    util_log("CR1=0x%02x CR2=0x%02x", cr1, cr2);
+
+    // --- Read current status register (0x05) ---
+    tx[0] = 0x05;
+    tx[1] = 0x00;
+    gpio_set_pin_level(PIN_MEM_CS, 0);
+    SPI_MEM_exchange_block(tx, 2);
+    gpio_set_pin_level(PIN_MEM_CS, 1);
+    sr = tx[1];
+    util_log("SR=0x%02x before setting SRWD.", sr);
+
+    // --- Set SRWD = 1 ---
+    sr |= 0x80;
+
+    tx[0] = 0x06;  // WREN
+    gpio_set_pin_level(PIN_MEM_CS, 0);
+    SPI_MEM_exchange_block(tx, 1);
+    gpio_set_pin_level(PIN_MEM_CS, 1);
+
+    tx[0] = 0x01;
+    tx[1] = sr;
+    tx[2] = cr1;
+    tx[3] = cr2;
+    gpio_set_pin_level(PIN_MEM_CS, 0);
+    SPI_MEM_exchange_block(tx, 4);
+    gpio_set_pin_level(PIN_MEM_CS, 1);
+    delay_ms(10);
+
+    // Confirm SRWD was set
+    tx[0] = 0x05; tx[1] = 0x00;
+    gpio_set_pin_level(PIN_MEM_CS, 0);
+    SPI_MEM_exchange_block(tx, 2);
+    gpio_set_pin_level(PIN_MEM_CS, 1);
+    util_log("SR=0x%02x after SRWD set.", tx[1]);
+
+    // --- WP# LOW ---
+    gpio_set_pin_level(PIN_MEM_WP, 0);
+    util_log("WP#=LOW.");
+
+    // Attempt to clear SRWD (should fail)
+    tx[0] = 0x06;
+    gpio_set_pin_level(PIN_MEM_CS, 0);
+    SPI_MEM_exchange_block(tx, 1);
+    gpio_set_pin_level(PIN_MEM_CS, 1);
+
+    sr &= ~0x80;  // Clear SRWD
+    tx[0] = 0x01;
+    tx[1] = sr;
+    tx[2] = cr1;
+    tx[3] = cr2;
+    gpio_set_pin_level(PIN_MEM_CS, 0);
+    SPI_MEM_exchange_block(tx, 4);
+    gpio_set_pin_level(PIN_MEM_CS, 1);
+    delay_ms(10);
+
+    tx[0] = 0x05; tx[1] = 0x00;
+    gpio_set_pin_level(PIN_MEM_CS, 0);
+    SPI_MEM_exchange_block(tx, 2);
+    gpio_set_pin_level(PIN_MEM_CS, 1);
+    util_log("SR=0x%02x after WRSR with WP# LOW.", tx[1]);
+
+    // --- WP# HIGH ---
+    gpio_set_pin_level(PIN_MEM_WP, 1);
+    util_log("WP#=HIGH.");
+
+    // Try again to clear SRWD (should succeed)
+    tx[0] = 0x06;
+    gpio_set_pin_level(PIN_MEM_CS, 0);
+    SPI_MEM_exchange_block(tx, 1);
+    gpio_set_pin_level(PIN_MEM_CS, 1);
+
+    tx[0] = 0x01;
+    tx[1] = sr;
+    tx[2] = cr1;
+    tx[3] = cr2;
+    gpio_set_pin_level(PIN_MEM_CS, 0);
+    SPI_MEM_exchange_block(tx, 4);
+    gpio_set_pin_level(PIN_MEM_CS, 1);
+    delay_ms(10);
+
+    tx[0] = 0x05; tx[1] = 0x00;
+    gpio_set_pin_level(PIN_MEM_CS, 0);
+    SPI_MEM_exchange_block(tx, 2);
+    gpio_set_pin_level(PIN_MEM_CS, 1);
+    util_log("SR=0x%02x after WRSR with WP# HIGH.", tx[1]);
+
+    util_log("WP# test done.");
+}
+
+/**
+ * Initialize SPI 1 peripheral
+ */
+static void _spi_mem_init(void)
+{
+    _spi_mem_CLOCK_init();
+    SPI_MEM_init();
+    _spi_mem_PORT_init();
 }
 
 /**
@@ -287,6 +565,8 @@ void system_init(void)
 
     // OLED
     _spi_init();
+    // MX25 memory
+    _spi_mem_init();
     // ATECC608A
     _i2c_init();
     // uSD
@@ -316,6 +596,9 @@ void bootloader_init(void)
 
     // OLED
     _spi_init();
+
+    // MX25 memory
+    // _spi_1_init();
 
     // Hardware crypto
     _ecdsa_init();
